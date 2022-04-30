@@ -5,9 +5,7 @@ import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Html
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -73,6 +71,42 @@ class MainActivity : AppCompatActivity() {
 
         override fun getItemCount(): Int {
             return books.size
+        }
+    }
+
+    // OPTIONS MENU
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        val inflater = menuInflater
+        inflater.inflate(R.menu.main_menu, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.menu_item_add -> {
+                return true
+            }
+            R.id.menu_item_sort_title -> {
+                return true
+            }
+            R.id.menu_item_sort_author -> {
+                return true
+            }
+            R.id.menu_item_sort_read -> {
+                return true
+            }
+            R.id.menu_item_delete -> {
+                return true
+            }
+            R.id.menu_item_about -> {
+                val builder = AlertDialog.Builder(this)
+                    .setTitle(getString(R.string.menu_item_about_title))
+                    .setMessage(getString(R.string.menu_item_about_msg))
+                    .setPositiveButton(android.R.string.ok, null)
+                builder.show()
+                return true
+            }
+            else -> return super.onOptionsItemSelected(item)
         }
     }
 }
