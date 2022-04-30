@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Book Tracker</string>
+    <string name="placeholder">Text</string>
 </resources>
