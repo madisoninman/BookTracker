@@ -1,10 +1,15 @@
 package com.example.booktracker
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.example.booktracker.databinding.ActivityAddBookBinding
@@ -22,12 +27,59 @@ class AddBookActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityAddBookBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        binding.searchTermsEditText.getText().clear()
+        binding.searchButton.setOnClickListener(SearchListener())
     }
 
     inner class SearchListener : View.OnClickListener {
         override fun onClick(view: View?) {
+            searchResults.clear()
+            val terms = binding.searchTermsEditText.text.toString().trim()
 
+            if (terms.isBlank()) {
+                Toast.makeText(applicationContext, R.string.no_input_toast, Toast.LENGTH_LONG)
+                    .show()
+            } else {
+                if (isNetworkAvailable()) {
+                    if (job?.isActive != true)
+                        callAPIs(terms)
+                } else {
+                    Toast.makeText(applicationContext, R.string.no_network_toast, Toast.LENGTH_LONG)
+                        .show()
+                }
+            }
         }
+    }
+
+    private fun callAPIs(terms: String) { }
+
+    fun isNetworkAvailable(): Boolean {
+        var available = false
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        cm.run {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                cm.getNetworkCapabilities(cm.activeNetwork)?.run {
+                    if (hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                        hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+                    ) {
+                        available = true
+                    }
+                }
+            } else {
+                cm.activeNetworkInfo?.run {
+                    if (type == ConnectivityManager.TYPE_MOBILE ||
+                        type == ConnectivityManager.TYPE_WIFI ||
+                        type == ConnectivityManager.TYPE_VPN
+                    ) {
+                        available = true
+                    }
+                }
+            }
+        }
+        return available
     }
 
     // RECYCLERVIEW

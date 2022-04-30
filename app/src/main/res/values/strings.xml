@@ -9,4 +9,6 @@
     <string name="menu_item_about">About</string>
     <string name="menu_item_about_title">BookTracker by Madison Inman</string>
     <string name="menu_item_about_msg">The developer would like to thank Google for providing access to their Google Books API.\n\nFor more information on the API, please refer to https://developers.google.com/books\n\nUse of this data does not constitute endorsement of this app or the developer by Google.</string>
+    <string name="no_input_toast">Please enter a search term</string>
+    <string name="no_network_toast">No network connection</string>
 </resources>
