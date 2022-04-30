@@ -25,4 +25,10 @@
     <string name="no_url_title">No URL</string>
     <string name="no_url_msg">No URL available</string>
     <string name="intent_purpose_view_book">View</string>
+    <string name="sort_title">title</string>
+    <string name="sort_author">author</string>
+    <string name="sort_read">read</string>
+    <string name="intent_purpose_add_book">Add</string>
+    <string name="delete_dialog_title">Confirm delete</string>
+    <string name="delete_all_msg">Are you sure you want to delete all books?</string>
 </resources>

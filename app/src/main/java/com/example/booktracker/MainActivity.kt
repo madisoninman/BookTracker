@@ -1,26 +1,32 @@
 package com.example.booktracker
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Html
+import android.util.Log
 import android.view.*
 import android.widget.TextView
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.booktracker.database.AppDatabase
+import com.example.booktracker.database.Book
 import com.example.booktracker.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var adapter: MyAdapter
-    //private val books = mutableListOf<Book>()
-    private val books = mutableListOf<String>()
+    private val books = mutableListOf<Book>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,6 +42,78 @@ class MainActivity : AppCompatActivity() {
         adapter = MyAdapter()
         binding.mainRecyclerview.adapter = adapter
     }
+
+    // DATABASE
+    private fun loadAllBooks(sort: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val db = AppDatabase.getDatabase(applicationContext)
+            val dao = db.bookDao()
+
+            val results = when (sort) {
+                getString(R.string.sort_title) -> {
+                    dao.getAllBooksByTitle()
+                }
+                getString(R.string.sort_author) -> {
+                    dao.getAllBooksByAuthor()
+                }
+                getString(R.string.sort_read) -> {
+                    dao.getAllBooksByRead()
+                }
+                else -> {
+                    dao.getAllBooks()
+                }
+            }
+
+            withContext(Dispatchers.Main) {
+                books.clear()
+                books.addAll(results)
+                adapter.notifyDataSetChanged()
+            }
+        }
+    }
+
+    private fun addNewBook() {
+        val intent = Intent(applicationContext, AddBookActivity::class.java)
+        intent.putExtra(
+            getString(R.string.intent_purpose_key),
+            getString(R.string.intent_purpose_add_book)
+        )
+        startForAddResult.launch(intent)
+    }
+
+    private fun deleteAllBooks() {
+        val builder = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.delete_dialog_title))
+            .setMessage(getString(R.string.delete_all_msg))
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok) { dialogInterface, whichButton ->
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    AppDatabase.getDatabase(applicationContext)
+                        .bookDao()
+                        .deleteAllBooks(books)
+
+                    loadAllBooks("")
+                }
+            }
+        builder.show()
+    }
+
+
+    private val startForAddResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                loadAllBooks("")
+            }
+        }
+
+    private val startForViewResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                loadAllBooks("")
+            }
+        }
+
 
     // RECYCLERVIEW
     inner class MyViewHolder(val view: TextView) :
@@ -84,18 +162,23 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.menu_item_add -> {
+                addNewBook()
                 return true
             }
             R.id.menu_item_sort_title -> {
+                loadAllBooks(getString(R.string.sort_title))
                 return true
             }
             R.id.menu_item_sort_author -> {
+                loadAllBooks(getString(R.string.sort_author))
                 return true
             }
             R.id.menu_item_sort_read -> {
+                loadAllBooks(getString(R.string.sort_read))
                 return true
             }
             R.id.menu_item_delete -> {
+                deleteAllBooks()
                 return true
             }
             R.id.menu_item_about -> {
