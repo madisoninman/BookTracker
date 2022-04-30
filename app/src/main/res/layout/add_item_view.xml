@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:background="@color/purple_700"
     android:padding="8dp"
-    android:text="Text"
+    android:text="@string/placeholder"
     android:textColor="@color/white"
     android:textSize="20sp"
     android:textStyle="bold">
