@@ -64,7 +64,7 @@ class AddBookActivity : AppCompatActivity() {
             } else {
                 if (isNetworkAvailable()) {
                     if (job?.isActive != true)
-                        callAPIs(terms)
+                        callAPI(terms)
                 } else {
                     Toast.makeText(applicationContext, R.string.no_network_toast, Toast.LENGTH_LONG)
                         .show()
@@ -73,7 +73,7 @@ class AddBookActivity : AppCompatActivity() {
         }
     }
 
-    private fun callAPIs(terms: String) {
+    private fun callAPI(terms: String) {
         job = CoroutineScope(Dispatchers.IO).launch {
             val url = getApiUrl(terms)
             val connection : HttpURLConnection = url.openConnection() as HttpURLConnection
@@ -85,7 +85,7 @@ class AddBookActivity : AppCompatActivity() {
             } finally { connection.disconnect() }
 
             val json = JSONObject(jsonResults)
-            var total = json.getInt("totalItems")
+            val total = json.getInt("totalItems")
 
             if (total == 0) {
                 // No results
