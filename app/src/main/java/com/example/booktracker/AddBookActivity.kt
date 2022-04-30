@@ -10,18 +10,27 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.booktracker.database.Book
 import com.example.booktracker.databinding.ActivityAddBookBinding
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.*
+import org.json.JSONException
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.net.HttpURLConnection
+import java.net.URL
 
 class AddBookActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAddBookBinding
     private var purpose: String? = ""
-    //val searchResults = mutableListOf<Book>()
-    val searchResults = mutableListOf<String>()
+    val searchResults = mutableListOf<Book>()
     private var job: Job? = null
     private var bookId : Long = -1
+    private var key : String = "AIzaSyCRcxq0dIr5qW0JFcSkYWSNs6xDXJXqd4E"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +61,100 @@ class AddBookActivity : AppCompatActivity() {
         }
     }
 
-    private fun callAPIs(terms: String) { }
+    private fun callAPIs(terms: String) {
+        job = CoroutineScope(Dispatchers.IO).launch {
+            val url = getApiUrl(terms)
+            val connection : HttpURLConnection = url.openConnection() as HttpURLConnection
+
+            var jsonResults = ""
+            try {
+                jsonResults = connection.getInputStream()
+                    .bufferedReader().use(BufferedReader::readText)
+            } finally { connection.disconnect() }
+
+            val json = JSONObject(jsonResults)
+            var total = json.getInt("totalItems")
+
+            if (total == 0) {
+                // No results
+                withContext(Dispatchers.Main) {
+                    val builder = AlertDialog.Builder(binding.root.context)
+                    builder
+                        .setTitle(R.string.no_results_title)
+                        .setMessage(R.string.no_results_msg)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                }
+                searchResults.clear()
+            } else {
+                val itemNums = json.getJSONArray("items")
+
+                // Ensures only 10 objects are shown
+                var loopLength = 0
+                if (total > 10) { loopLength = 10 }
+                else { loopLength = total }
+
+                for (i in 0 until loopLength) {
+                    var title = ""
+                    var description = ""
+                    var preview = ""
+                    var author = ""
+                    var image = ""
+
+                    try {
+                        val item = itemNums.getJSONObject(i)
+                        val volumeInfo = item.getJSONObject("volumeInfo")
+
+                        title = volumeInfo.getString("title")
+                        description = volumeInfo.getString("description")
+                        preview = volumeInfo.getString("previewLink")
+
+                        val authors = volumeInfo.getJSONArray("authors")
+                        author = authors.getString(0)
+
+                        val images = volumeInfo.getJSONObject("imageLinks")
+                        image = images.getString("thumbnail")
+
+                        val book = Book(0, title, author, description, preview, image, 0)
+                        searchResults.add(book)
+                    }
+                    catch (e: JSONException) {
+                        // error check
+                        if (title.isBlank()) { title = getString(R.string.unknown) }
+                        if (description.isBlank()) { description = getString(R.string.unknown) }
+                        if (preview.isBlank()) { preview = getString(R.string.unknown) }
+                        if (author.isBlank()) { author = getString(R.string.unknown) }
+                        if (image.isBlank()) { image = getString(R.string.unknown) }
+                    }
+                }
+
+                // RecyclerView
+                withContext(Dispatchers.Main) {
+                    val layoutManager = LinearLayoutManager(applicationContext)
+                    binding.searchRecyclerView.layoutManager = layoutManager
+
+                    binding.searchRecyclerView.setHasFixedSize(true)
+
+                    val divider = DividerItemDecoration(applicationContext, layoutManager.orientation)
+                    binding.searchRecyclerView.addItemDecoration(divider)
+
+                    val adapter = MyAddAdapter()
+                    binding.searchRecyclerView.adapter = adapter
+                }
+            }
+        }
+    }
+
+    private fun getApiUrl(terms : String) : URL {
+        var searchTerms = terms.replace(" ", "-")
+        searchTerms = "\"" + searchTerms + "\""
+
+        var path = ""
+        if (terms.isNotBlank()) {
+            path = "https://www.googleapis.com/books/v1/volumes?q=$searchTerms&key=$key"
+        }
+        return URL(path)
+    }
 
     fun isNetworkAvailable(): Boolean {
         var available = false
@@ -92,7 +194,8 @@ class AddBookActivity : AppCompatActivity() {
         }
 
         override fun onClick(view: View?) {
-
+            searchResults.clear()
+            binding.searchTermsEditText.text.clear()
         }
     }
 
