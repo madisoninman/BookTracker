@@ -24,4 +24,5 @@
     <string name="intent_key_book_id">book id</string>
     <string name="no_url_title">No URL</string>
     <string name="no_url_msg">No URL available</string>
+    <string name="intent_purpose_view_book">View</string>
 </resources>

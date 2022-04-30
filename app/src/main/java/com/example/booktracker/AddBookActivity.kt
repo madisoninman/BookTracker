@@ -1,6 +1,8 @@
 package com.example.booktracker
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -10,11 +12,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.booktracker.database.AppDatabase
 import com.example.booktracker.database.Book
 import com.example.booktracker.databinding.ActivityAddBookBinding
 import kotlinx.coroutines.*
@@ -37,6 +42,13 @@ class AddBookActivity : AppCompatActivity() {
         binding = ActivityAddBookBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        val intent = getIntent()
+        purpose = intent.getStringExtra(
+            getString(R.string.intent_purpose_key)
+        )
+        setTitle("${purpose} Book")
+
+        searchResults.clear()
         binding.searchTermsEditText.getText().clear()
         binding.searchButton.setOnClickListener(SearchListener())
     }
@@ -184,6 +196,11 @@ class AddBookActivity : AppCompatActivity() {
         return available
     }
 
+    private val startForViewResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result : ActivityResult ->
+            if (result.resultCode == Activity.RESULT_OK) { super.onBackPressed() }
+        }
+
     // RECYCLERVIEW
     inner class MyAddViewHolder(val view: TextView) :
         RecyclerView.ViewHolder(view),
@@ -194,8 +211,30 @@ class AddBookActivity : AppCompatActivity() {
         }
 
         override fun onClick(view: View?) {
-            searchResults.clear()
-            binding.searchTermsEditText.text.clear()
+            CoroutineScope(Dispatchers.IO).launch {
+                val dao = AppDatabase.getDatabase(applicationContext)
+                    .bookDao()
+
+                bookId = dao.addBook(searchResults[position])
+
+                withContext(Dispatchers.Main) {
+                    setResult(RESULT_OK, intent)
+                    val intent = Intent(applicationContext, ViewBookActivity::class.java)
+
+                    intent.putExtra(
+                        getString(R.string.intent_purpose_key),
+                        getString(R.string.intent_purpose_view_book)
+                    )
+                    intent.putExtra(
+                        getString(R.string.intent_key_book_id),
+                        bookId
+                    )
+
+                    searchResults.clear()
+                    binding.searchTermsEditText.getText().clear()
+                    startForViewResult.launch(intent)
+                }
+            }
         }
     }
 
