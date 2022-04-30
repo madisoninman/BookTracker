@@ -126,10 +126,40 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onClick(view: View?) {
+            val intent = Intent(applicationContext, ViewBookActivity::class.java)
 
+            intent.putExtra(
+                getString(R.string.intent_purpose_key),
+                getString(R.string.intent_purpose_view_book)
+            )
+
+            val book = books[adapterPosition]
+            intent.putExtra(
+                getString(R.string.intent_key_book_id),
+                book.id
+            )
+
+            startForViewResult.launch(intent)
         }
 
         override fun onLongClick(view: View?): Boolean {
+            val book = books[adapterPosition]
+
+            val builder = AlertDialog.Builder(view!!.context)
+                .setTitle(getString(R.string.delete_dialog_title))
+
+                .setMessage(getString(R.string.delete_dialog_msg) + "${book.title}\"?")
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok) { dialogInterface, whichButton ->
+
+                    CoroutineScope(Dispatchers.IO).launch {
+                        AppDatabase.getDatabase(applicationContext)
+                            .bookDao()
+                            .deleteBook(book)
+                        loadAllBooks("")
+                    }
+                }
+            builder.show()
             return true
         }
     }
@@ -144,7 +174,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
-            holder.view.text = books[position].toString()
+            holder.view.text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                Html.fromHtml(books[position].toStringMain(), Html.FROM_HTML_MODE_COMPACT)
+            } else {
+                Html.fromHtml(books[position].toStringMain())
+            }
         }
 
         override fun getItemCount(): Int {
